@@ -15,7 +15,6 @@ Au Bénin, la majorité des garages automobiles utilise des méthodes personnali
 
 LOGA GMAO a pour objectif de développer une solution informatique de type [ERP](https://fr.wikipedia.org/wiki/Progiciel_de_gestion_int%C3%A9gr%C3%A9) pour résoudre les difficultés de gestion des garages automobiles au Bénin et dans la sous région. 
 
-![SOLUTION](media/solution.png)
 
 ## Périmètre
 
