@@ -1,0 +1,118 @@
+version: '3.8'
+services:
+  client-react:
+    image: client-react
+    ports:
+      - '3000:3000'
+    networks:
+      loga:
+        ipv4_address: 172.19.0.2
+    depends_on:
+      - gateway-server
+
+  data-center:
+    image: datacenter
+    ports:
+      - '25432:5432'
+    networks:
+      loga:
+        ipv4_address: 172.19.0.5
+    environment:
+      - POSTGRES_USER=loga
+      - POSTGRES_PASSWORD=Log@2020
+      - POSTGRES_DB=loga
+    restart: always
+
+  authentication-service:
+    image: authentication-service
+    ports:
+      - "8001:8001"
+    networks:
+      loga:
+        ipv4_address: 172.19.0.4
+    depends_on:
+      - naming-server
+      - data-center
+    environment:
+      SPRING.DATASOURCE.URL: jdbc:postgresql://data-center:5432/loga
+      SPRING.DATASOURCE.USERNAME: loga
+      SPRING.DATASOURCE.PASSWORD: Log@2020
+      SPRING.JPA.HIBERNATE.DDL.AUTO: update
+      EUREKA.CLIENT.SERVICEURL.DEFAULTZONE: http://naming-server:8761/eureka
+      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-server:9411/api/v2/spans
+
+  customer-service:
+    image: customer-service
+    ports:
+      - "8002:8002"
+    networks:
+      loga:
+        ipv4_address: 172.19.0.6
+    depends_on:
+      - naming-server
+      - data-center
+    environment:
+      SPRING.DATASOURCE.URL: jdbc:postgresql://data-center:5432/loga
+      SPRING.DATASOURCE.USERNAME: loga
+      SPRING.DATASOURCE.PASSWORD: Log@2020
+      SPRING.JPA.HIBERNATE.DDL.AUTO: update
+      EUREKA.CLIENT.SERVICEURL.DEFAULTZONE: http://naming-server:8761/eureka
+      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-server:9411/api/v2/spans
+
+  maintenance-service:
+    image: maintenance-service
+    ports:
+      - "8003:8003"
+    networks:
+      loga:
+        ipv4_address: 172.19.0.7
+    depends_on:
+      - naming-server
+      - data-center
+    environment:
+      SPRING.DATASOURCE.URL: jdbc:postgresql://data-center:5432/loga
+      SPRING.DATASOURCE.USERNAME: loga
+      SPRING.DATASOURCE.PASSWORD: Log@2020
+      SPRING.JPA.HIBERNATE.DDL.AUTO: update
+      EUREKA.CLIENT.SERVICEURL.DEFAULTZONE: http://naming-server:8761/eureka
+      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-server:9411/api/v2/spans
+
+  gateway-server:
+    image: gateway-server
+    ports:
+      - "8765:8765"
+    networks:
+      loga:
+        ipv4_address: 172.19.0.13
+    depends_on:
+      - naming-server
+    environment:
+      EUREKA.CLIENT.SERVICEURL.DEFAULTZONE: http://naming-server:8761/eureka
+      MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-server:9411/api/v2/spans
+  
+  naming-server:
+    image: naming-server
+    ports:
+      - "8761:8761"
+    networks:
+      loga:
+        ipv4_address: 172.19.0.12
+    restart: always
+  
+  zipkin-server:
+    image: zipkin-server
+    ports:
+      - "9411:9411"
+    networks:
+      loga:
+        ipv4_address: 172.19.0.11
+    restart: always
+    
+    
+networks:
+  loga:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.19.0.0/16
+          gateway: 172.19.0.1

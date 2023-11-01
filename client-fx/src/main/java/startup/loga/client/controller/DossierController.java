@@ -1,0 +1,283 @@
+package startup.loga.client.controller;
+
+import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.collections.FXCollections;
+import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
+import javafx.event.ActionEvent;
+import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseEvent;
+import javafx.util.StringConverter;
+import startup.loga.client.app.api.*;
+import startup.loga.client.model.Diagnosis;
+import startup.loga.client.model.Dossier;
+import startup.loga.client.model.Reception;
+import startup.loga.client.model.Repair;
+
+import java.io.IOException;
+import java.net.URL;
+import java.text.SimpleDateFormat;
+import java.util.List;
+import java.util.ResourceBundle;
+
+public class DossierController implements Initializable
+{
+    final DossierPortal dossierPortal;
+    final DiagnosticPortal diagnosticPortal;
+    final RepairPortal repairPortal;
+    final ReceptionPortal receptionPortal;
+    final ReportPortal reportPortal;
+
+    List<Dossier> allDossier;
+
+    Dossier dossierCurrent;
+
+    @FXML
+    private ComboBox<Dossier> dossiers;
+
+    @FXML
+    private TextField number;
+
+    @FXML
+    private TextField make;
+
+    @FXML
+    private TextField model;
+
+    @FXML
+    private TextField trim;
+
+    @FXML
+    private TextField unit;
+
+    @FXML
+    private TextField vin;
+
+    @FXML
+    private TextField client;
+
+    @FXML
+    private TextField reference;
+
+    @FXML
+    private TableView<Reception> table_reception;
+
+    @FXML
+    private TableColumn<Reception, Long> column_reception_id;
+
+    @FXML
+    private TableColumn<Reception, String> column_reception_date;
+
+    @FXML
+    private TableColumn<Reception, String> column_reception_description;
+
+    @FXML
+    private TableColumn<Reception, String> column_reception_profile;
+
+    @FXML
+    private TableView<Diagnosis> table_diagnostic;
+
+    @FXML
+    private TableColumn<Diagnosis, Long> column_diagnostic_id;
+
+    @FXML
+    private TableColumn<Diagnosis, String> column_diagnostic_date;
+
+    @FXML
+    private TableColumn<Diagnosis, String> column_diagnostic_description;
+
+    @FXML
+    private TableColumn<Diagnosis, String> column_diagnostic_profile;
+
+    @FXML
+    private TableView<Repair> table_repair;
+
+    @FXML
+    private TableColumn<Repair, Long> column_repair_id;
+
+    @FXML
+    private TableColumn<Repair, String> column_repair_date;
+
+    @FXML
+    private TableColumn<Repair, String> column_repair_reference;
+
+    @FXML
+    private TableColumn<Repair, String> column_repair_description;
+
+    @FXML
+    private TableColumn<Repair, String> column_repair_profile;
+
+    @FXML
+    void archive(ActionEvent event){
+
+    }
+
+    @FXML
+    void print_diagnostic(MouseEvent event) {
+        try {
+            reportPortal.reportById("diagnosis",table_diagnostic.getSelectionModel().getSelectedItem().getId());
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @FXML
+    void print_reception(MouseEvent event) {
+        try {
+            reportPortal.reportById("reception",table_diagnostic.getSelectionModel().getSelectedItem().getId());
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @FXML
+    void print_reparation(MouseEvent event) {
+        try {
+            reportPortal.reportById("repair",table_repair.getSelectionModel().getSelectedItem().getId());
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @FXML
+    void search_dossier(KeyEvent event) {
+        FilteredList<Dossier> items = new FilteredList<>(FXCollections.observableArrayList(allDossier));
+        items.setPredicate(item ->{
+            String lower = dossiers.getEditor().getText().toLowerCase();
+            String upper = dossiers.getEditor().getText().toUpperCase();
+            if(item.getAutomobile().getVin().contains(lower))
+                return true;
+            else
+                return item.getAutomobile().getVin().contains(upper);
+        });
+        SortedList<Dossier> sorted = new SortedList<>(items);
+        dossiers.setItems(sorted);
+    }
+
+    void readInformation(Dossier dossier) {
+        reference.setText(dossier.getReference());
+        client.setText(dossier.getClient().getName()+" | "+dossier.getClient().getContact());
+        number.setText(dossier.getAutomobile().getNumber());
+        vin.setText(dossier.getAutomobile().getVin());
+        make.setText(dossier.getAutomobile().getMake());
+        model.setText(dossier.getAutomobile().getModel());
+        trim.setText(String.valueOf(dossier.getAutomobile().getTrim()));
+        unit.setText(dossier.getAutomobile().getUnit());
+    }
+
+    void readReception(String dossier) throws IOException, InterruptedException {
+        List<Reception> receptions = receptionPortal.read();
+        FilteredList<Reception> items = new FilteredList<>(FXCollections.observableArrayList(receptions));
+        items.setPredicate(item ->{
+            if(item.getDossier().equals(dossier))
+                return true;
+            else
+                return item.getDossier().contains(dossier);
+        });
+        SortedList<Reception> sorted = new SortedList<>(items);
+        table_reception.setItems(sorted);
+    }
+
+    void readDiagnostic(String dossier) throws IOException, InterruptedException {
+        List<Diagnosis> diagnoses = diagnosticPortal.read();
+        FilteredList<Diagnosis> items = new FilteredList<>(FXCollections.observableArrayList(diagnoses));
+        items.setPredicate(item ->{
+            if(item.getDossier().equals(dossier))
+                return true;
+            else
+                return item.getDossier().contains(dossier);
+        });
+        SortedList<Diagnosis> sorted = new SortedList<>(items);
+        table_diagnostic.setItems(sorted);
+    }
+
+    void readReparation(String dossier) throws IOException, InterruptedException {
+        List<Repair> repairs = repairPortal.list();
+        FilteredList<Repair> items = new FilteredList<>(FXCollections.observableArrayList(repairs));
+        items.setPredicate(item ->{
+            if(item.getDossier().equals(dossier))
+                return true;
+            else
+                return item.getDossier().contains(dossier);
+        });
+        SortedList<Repair> sorted = new SortedList<>(items);
+        table_repair.setItems(sorted);
+    }
+
+    void readDossiers(){
+        try {
+            this.allDossier = dossierPortal.read();
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        dossiers.setItems(FXCollections.observableArrayList(allDossier));
+    }
+
+    public DossierController(){
+        this.dossierPortal = new DossierPortal();
+        this.diagnosticPortal = new DiagnosticPortal();
+        this.repairPortal = new RepairPortal();
+        this.receptionPortal = new ReceptionPortal();
+        this.reportPortal = new ReportPortal();
+    }
+    
+    public void initialize(URL location, ResourceBundle resources) {
+
+        readDossiers();
+
+        column_reception_id.setCellValueFactory((TableColumn.CellDataFeatures<Reception, Long> r)->new ReadOnlyObjectWrapper<>(r.getValue().getId()));
+        column_reception_date.setCellValueFactory((TableColumn.CellDataFeatures<Reception, String> r)->new ReadOnlyObjectWrapper<>(new SimpleDateFormat("dd-MM-YYYY").format(r.getValue().getCreatedAt())));
+        column_reception_description.setCellValueFactory((TableColumn.CellDataFeatures<Reception, String> r)->new ReadOnlyObjectWrapper<>(r.getValue().getDescription()));
+        column_reception_profile.setCellValueFactory((TableColumn.CellDataFeatures<Reception, String> r)->new ReadOnlyObjectWrapper<>(r.getValue().getDescription()));
+
+        column_diagnostic_id.setCellValueFactory((TableColumn.CellDataFeatures<Diagnosis, Long> r)->new ReadOnlyObjectWrapper<>(r.getValue().getId()));
+        column_diagnostic_date.setCellValueFactory((TableColumn.CellDataFeatures<Diagnosis, String> r)->new ReadOnlyObjectWrapper<>(new SimpleDateFormat("dd-MM-YYYY").format(r.getValue().getCreatedAt())));
+        column_diagnostic_description.setCellValueFactory((TableColumn.CellDataFeatures<Diagnosis, String> r)->new ReadOnlyObjectWrapper<>(r.getValue().getDescription()));
+        column_diagnostic_profile.setCellValueFactory((TableColumn.CellDataFeatures<Diagnosis, String> r)->new ReadOnlyObjectWrapper<>(r.getValue().getDescription()));
+
+        column_repair_id.setCellValueFactory((TableColumn.CellDataFeatures<Repair, Long> r)->new ReadOnlyObjectWrapper<>(r.getValue().getId()));
+        column_repair_date.setCellValueFactory((TableColumn.CellDataFeatures<Repair, String> r)->new ReadOnlyObjectWrapper<>(new SimpleDateFormat("dd-MM-YYYY").format(r.getValue().getCreatedAt())));
+        column_repair_description.setCellValueFactory((TableColumn.CellDataFeatures<Repair, String> r)->new ReadOnlyObjectWrapper<>(r.getValue().getDescription()));
+        column_repair_reference.setCellValueFactory((TableColumn.CellDataFeatures<Repair, String> r)->new ReadOnlyObjectWrapper<>(r.getValue().getReference()));
+        column_repair_profile.setCellValueFactory((TableColumn.CellDataFeatures<Repair, String> r)->new ReadOnlyObjectWrapper<>(r.getValue().getProfile()));
+
+        dossiers.addEventHandler(ActionEvent.ACTION, event -> {
+            if (dossiers.getSelectionModel().getSelectedIndex() != -1) {
+                dossierCurrent = dossiers.getValue();
+                readInformation(dossierCurrent);
+                try {
+                    readReception(dossierCurrent.getReference());
+                    readDiagnostic(dossierCurrent.getReference());
+                    readReparation(dossierCurrent.getReference());
+                } catch (IOException | InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+
+        dossiers.setConverter(new StringConverter<Dossier>() {
+            @Override
+            public String toString(Dossier object) {
+                if(object==null) return null;
+                return object.getReference();
+            }
+
+            @Override
+            public Dossier fromString(String string) {
+                String[] data = string.split("/");
+                String auto = data[0].trim();
+                try {
+                    return dossierPortal.read(dossierCurrent.getId());
+                } catch (IOException | InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+    }
+}
